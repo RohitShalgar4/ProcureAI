@@ -123,9 +123,15 @@ const RFPCreationView = () => {
                   {item.description && <p className="text-sm text-gray-600">{item.description}</p>}
                   {item.quantity && <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>}
                   {item.specifications && Object.keys(item.specifications).length > 0 && (
-                    <div className="text-sm text-gray-600 mt-1">
-                      <span className="font-medium">Specifications: </span>
-                      {JSON.stringify(item.specifications)}
+                    <div className="text-sm text-gray-600 mt-2">
+                      <p className="font-medium mb-1">Specifications:</p>
+                      <ul className="list-disc list-inside pl-2 space-y-0.5">
+                        {Object.entries(item.specifications).map(([key, value]) => (
+                          <li key={key}>
+                            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {value}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>

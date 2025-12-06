@@ -414,19 +414,30 @@ Important:
 
     try {
       const responseContent = await this.makeCompletionRequest(systemPrompt, userPrompt);
+      console.log('AI comparison raw response:', responseContent.substring(0, 500) + '...');
+      
       const comparisonData = this.parseJSONResponse(responseContent);
+      console.log('Parsed comparison data keys:', Object.keys(comparisonData));
 
-      // Validate required fields
+      // Validate required fields with fallbacks
       if (!comparisonData.proposal_analysis || !Array.isArray(comparisonData.proposal_analysis)) {
-        throw new Error('AI response missing required field: proposal_analysis');
+        console.warn('AI response missing proposal_analysis, using empty array');
+        comparisonData.proposal_analysis = [];
       }
 
-      if (!comparisonData.recommendation || !comparisonData.recommendation.vendor_id) {
-        throw new Error('AI response missing required field: recommendation');
+      if (!comparisonData.recommendation) {
+        console.warn('AI response missing recommendation, creating default');
+        comparisonData.recommendation = {
+          vendor_id: null,
+          vendor_name: 'None',
+          reasoning: 'Unable to make a recommendation. Proposals may be incomplete or lack sufficient information for evaluation.',
+          confidence: 0
+        };
       }
 
       if (!comparisonData.summary) {
-        throw new Error('AI response missing required field: summary');
+        console.warn('AI response missing summary, creating default');
+        comparisonData.summary = 'Comparison analysis could not be completed. Please review proposals manually.';
       }
 
       // Validate each analysis entry

@@ -154,14 +154,17 @@ export const getProposalsByRFP = asyncHandler(async (req, res) => {
     rfp_title: rfp.title,
     proposal_count: proposals.length,
     proposals: proposals.map(p => ({
+      _id: p._id,
       id: p._id,
-      vendor: {
+      vendor_id: {
+        _id: p.vendor_id._id,
         id: p.vendor_id._id,
         name: p.vendor_id.name,
         email: p.vendor_id.email,
         contact_person: p.vendor_id.contact_person,
         specialization: p.vendor_id.specialization,
       },
+      raw_email_content: p.raw_email_content,
       parsed_data: p.parsed_data,
       total_price: p.parsed_data?.total_price,
       delivery_timeline: p.parsed_data?.delivery_timeline,
@@ -192,7 +195,16 @@ export const getComparison = asyncHandler(async (req, res) => {
     .populate('vendor_id', 'name email contact_person specialization');
 
   if (proposals.length === 0) {
-    throw new NotFoundError('No proposals found for this RFP');
+    // Return empty response instead of error when no proposals exist
+    return res.status(200).json({
+      rfp_id: id,
+      rfp_title: rfp.title,
+      proposal_count: 0,
+      proposals: [],
+      analysis: null,
+      recommendation: null,
+      summary: 'No proposals have been received yet for this RFP.',
+    });
   }
 
   // Generate AI comparison and recommendation
@@ -201,7 +213,33 @@ export const getComparison = asyncHandler(async (req, res) => {
     comparison = await aiService.compareProposals(rfp, proposals);
   } catch (aiError) {
     console.error('Error generating AI comparison:', aiError);
-    throw new AIServiceError('Failed to generate AI comparison', aiError.message);
+    // Return proposals without AI comparison if AI fails
+    return res.status(200).json({
+      rfp_id: id,
+      rfp_title: rfp.title,
+      proposal_count: proposals.length,
+      proposals: proposals.map(p => ({
+        _id: p._id,
+        id: p._id,
+        vendor_id: {
+          _id: p.vendor_id._id,
+          id: p.vendor_id._id,
+          name: p.vendor_id.name,
+          email: p.vendor_id.email,
+        },
+        raw_email_content: p.raw_email_content,
+        parsed_data: p.parsed_data,
+        total_price: p.parsed_data?.total_price,
+        parsing_confidence: p.parsing_confidence,
+        requires_review: p.requires_review,
+        status: p.status,
+        received_at: p.received_at,
+      })),
+      analysis: null,
+      recommendation: null,
+      summary: 'AI comparison is temporarily unavailable. Please review proposals manually.',
+      error: 'AI service error',
+    });
   }
 
   res.status(200).json({
@@ -209,14 +247,21 @@ export const getComparison = asyncHandler(async (req, res) => {
     rfp_title: rfp.title,
     proposal_count: proposals.length,
     proposals: proposals.map(p => ({
+      _id: p._id,
       id: p._id,
-      vendor: {
+      vendor_id: {
+        _id: p.vendor_id._id,
         id: p.vendor_id._id,
         name: p.vendor_id.name,
         email: p.vendor_id.email,
       },
+      raw_email_content: p.raw_email_content,
       parsed_data: p.parsed_data,
       total_price: p.parsed_data?.total_price,
+      parsing_confidence: p.parsing_confidence,
+      requires_review: p.requires_review,
+      status: p.status,
+      received_at: p.received_at,
     })),
     analysis: comparison.proposal_analysis,
     recommendation: comparison.recommendation,

@@ -82,7 +82,8 @@ class EmailPollingService {
 
       // Parse proposal data using AI
       try {
-        const parsedData = await this.aiService.parseProposal(emailData.body);
+        console.log(`Parsing proposal with AI for vendor ${correlation.vendorId}...`);
+        const parsedData = await this.aiService.parseProposal(emailData);
 
         // Update proposal with parsed data
         proposal.parsed_data = parsedData;
@@ -92,9 +93,10 @@ class EmailPollingService {
         proposal.parsed_at = new Date();
 
         await proposal.save();
-        console.log(`Proposal parsed with confidence: ${parsedData.confidence}`);
+        console.log(`Proposal parsed successfully with confidence: ${parsedData.confidence}`);
       } catch (parseError) {
         console.error('Error parsing proposal:', parseError.message);
+        console.error('Parse error details:', parseError);
         // Keep proposal in 'received' status if parsing fails
         proposal.requires_review = true;
         await proposal.save();

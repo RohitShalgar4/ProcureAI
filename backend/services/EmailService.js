@@ -142,7 +142,7 @@ class EmailService {
     emailBody += `We are seeking proposals for the following procurement requirement:\n\n`;
     emailBody += `=== RFP DETAILS ===\n\n`;
     emailBody += `Title: ${rfp.title}\n\n`;
-    
+
     if (rfp.description) {
       emailBody += `Description:\n${rfp.description}\n\n`;
     }
@@ -151,7 +151,7 @@ class EmailService {
     if (rfp.structured_data?.items && rfp.structured_data.items.length > 0) {
       emailBody += `ITEMS REQUESTED:\n`;
       emailBody += `${'='.repeat(50)}\n\n`;
-      
+
       rfp.structured_data.items.forEach((item, index) => {
         emailBody += `${index + 1}. ${item.name}\n`;
         if (item.description) {
@@ -203,10 +203,10 @@ class EmailService {
     // Format deadline
     if (rfp.deadline) {
       const deadlineDate = new Date(rfp.deadline);
-      emailBody += `RESPONSE DEADLINE: ${deadlineDate.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      emailBody += `RESPONSE DEADLINE: ${deadlineDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       })}\n\n`;
     }
 
@@ -246,7 +246,7 @@ class EmailService {
       };
 
       const result = await this.sendEmail(mailOptions);
-      
+
       return {
         ...result,
         vendorId: vendor._id,
@@ -280,7 +280,7 @@ class EmailService {
 
     // Validate all vendor emails first
     const emailValidation = this.validateEmails(vendors.map(v => v.email));
-    
+
     if (emailValidation.invalid.length > 0) {
       console.warn(`Invalid vendor emails found: ${emailValidation.invalid.join(', ')}`);
     }
@@ -291,7 +291,7 @@ class EmailService {
 
     sendResults.forEach((result, index) => {
       const vendor = vendors[index];
-      
+
       if (result.status === 'fulfilled' && result.value.success) {
         results.successful.push({
           vendorId: vendor._id,
@@ -300,16 +300,16 @@ class EmailService {
           messageId: result.value.messageId,
         });
       } else {
-        const errorMessage = result.status === 'rejected' 
-          ? result.reason.message 
+        const errorMessage = result.status === 'rejected'
+          ? result.reason.message
           : result.value.error;
-        
+
         results.failed.push({
           vendorId: vendor._id,
           vendorName: vendor.name,
           email: vendor.email,
         });
-        
+
         results.errors.push({
           vendor: vendor.name,
           email: vendor.email,
@@ -319,7 +319,7 @@ class EmailService {
     });
 
     console.log(`RFP sent: ${results.successful.length} successful, ${results.failed.length} failed`);
-    
+
     return results;
   }
 
@@ -430,7 +430,7 @@ class EmailService {
     if (!fromEmail) {
       console.error('Failed to extract from email. Mail.from structure:', JSON.stringify(mail.from));
     }
-    
+
     return {
       from: fromEmail,
       fromName: fromName,
@@ -492,11 +492,11 @@ class EmailService {
                   try {
                     const emailData = this.extractEmailData(mail);
                     console.log(`Processing email from: ${emailData.from}`);
-                    
+
                     if (onEmailReceived) {
                       await onEmailReceived(emailData);
                     }
-                    
+
                     emailCount++;
                   } catch (error) {
                     console.error(`Error processing email ${seqno}:`, error.message);
@@ -584,7 +584,7 @@ class EmailService {
   processInboundWebhook(webhookData) {
     // Generic webhook processing - adapt based on email service
     // This is a basic implementation that can be extended
-    
+
     return {
       from: webhookData.from || webhookData.sender,
       fromName: webhookData.from_name || '',

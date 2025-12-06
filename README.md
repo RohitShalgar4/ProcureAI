@@ -78,21 +78,33 @@ Before you begin, ensure you have the following installed:
 - **OpenAI API Key** - [Get API Key](https://platform.openai.com/api-keys)
 - **Email Account** - Gmail, SendGrid, or AWS SES for SMTP/IMAP
 
-## 🚀 Installation
+## 🚀 Project Setup
 
-### 1. Clone the Repository
+### 1. Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js** v18 or higher ([Download](https://nodejs.org/))
+- **MongoDB** - Local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account
+- **OpenAI API Key** - [Get API Key](https://platform.openai.com/api-keys)
+- **Gmail Account** - For email sending/receiving (or SendGrid/AWS SES)
+
+### 2. Clone the Repository
 
 ```bash
 git clone <repository-url>
-cd rfp-management-system
+cd ProcureAI
 ```
 
-### 2. Backend Setup
+### 3. Backend Setup
 
+#### Install Dependencies
 ```bash
 cd backend
 npm install
 ```
+
+#### Configure Environment Variables
 
 Create a `.env` file in the `backend` directory:
 
@@ -100,40 +112,120 @@ Create a `.env` file in the `backend` directory:
 cp .env.example .env
 ```
 
-Configure your environment variables in `backend/.env`:
+Edit `backend/.env` with your configuration:
 
 ```env
 # Server Configuration
 PORT=5000
 NODE_ENV=development
 
-# Database
-MONGO_URI=mongodb://localhost:27017/rfp-management
+# Database (MongoDB Atlas or Local)
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/rfp-management
+# OR for local: mongodb://localhost:27017/rfp-management
 
 # Frontend URL (for CORS)
 FRONTEND_URL=http://localhost:5173
 
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4-turbo-preview
+# OpenAI Configuration (Required)
+OPENAI_API_KEY=sk-proj-your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
 
-# Email Configuration (SMTP)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_specific_password
+# Email Service Configuration
+EMAIL_SERVICE=gmail
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_SECURE=false
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASSWORD=your_16_char_app_password
 
-# Email Configuration (IMAP - for receiving)
+# IMAP Configuration (for receiving vendor responses)
 IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
 IMAP_USER=your_email@gmail.com
-IMAP_PASSWORD=your_app_specific_password
+IMAP_PASSWORD=your_16_char_app_password
 IMAP_TLS=true
 
-# Email Polling
+# Email Polling (Auto-check for vendor responses)
 ENABLE_EMAIL_POLLING=true
-EMAIL_POLLING_INTERVAL=5
+EMAIL_POLLING_INTERVAL=2
+
+# Alternative: SendGrid
+# SENDGRID_API_KEY=your_sendgrid_api_key
+
+# Alternative: AWS SES
+# AWS_REGION=us-east-1
+# AWS_ACCESS_KEY_ID=your_access_key
+# AWS_SECRET_ACCESS_KEY=your_secret_key
+```
+
+#### Start Backend Server
+```bash
+npm run dev
+```
+
+Backend will run on `http://localhost:5000`
+
+**Expected Output:**
+```
+✅ Email service initialized with gmail
+✅ Email polling enabled
+✅ Starting email polling every 2 minute(s)
+✅ Server listening at port 5000
+✅ MongoDB Connected
+```
+
+### 4. Frontend Setup
+
+#### Install Dependencies
+```bash
+cd frontend
+npm install
+```
+
+#### Configure Environment Variables
+
+Create a `.env` file in the `frontend` directory:
+
+```bash
+cp .env.example .env
+```
+
+Edit `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+#### Start Frontend Server
+```bash
+npm run dev
+```
+
+Frontend will run on `http://localhost:5173`
+
+### 5. Initial Setup
+
+#### Create Your First Vendor
+1. Open `http://localhost:5173`
+2. Click "Add Vendor"
+3. Fill in vendor details
+4. Save
+
+#### Create Your First RFP
+1. Navigate to "Create RFP"
+2. Enter a description (see examples below)
+3. Click "Generate RFP with AI"
+4. Review structured RFP
+5. Click "Send to Vendors"
+6. Select vendors and send
+
+#### Example RFP Descriptions
+```
+We need 50 ergonomic office chairs with lumbar support and adjustable armrests. Budget is $15,000. Delivery needed within 30 days. Payment terms net 30. Minimum 2-year warranty required.
+
+We need to purchase 10 laptops with Intel i7 processor, 16GB RAM, 512GB SSD. Budget is $12,000. Delivery in 45 days. Payment terms: Net 30. Warranty: 3 years minimum.
+
+Need 5 conference room projectors with 4K resolution, wireless connectivity, and built-in speakers. Budget $7,500. Delivery 30 days. Net 30 payment. 2-year warranty.
 ```
 
 ### 3. Frontend Setup
@@ -457,30 +549,112 @@ cd frontend
 node test-rfp-dashboard.js
 ```
 
-## 🔧 Design Decisions
+## 🎯 Key Design Decisions & Assumptions
 
-### Why MongoDB?
-- **Flexible Schema**: RFP structures vary significantly between procurement needs
-- **JSON Storage**: Natural fit for AI-generated structured data
-- **Document Model**: Handles unpredictable proposal formats well
-- **Rapid Development**: Faster iteration with flexible schema
+### 1. Database Design
 
-### Why Synchronous AI Processing?
-- **Simpler Implementation**: Adequate for single-user system
-- **Immediate Feedback**: Users expect results after submission
-- **Loading States**: Provide good UX during 5-15 second operations
-- **Future Scalability**: Can migrate to job queue for multi-user
+**Decision: MongoDB with Flexible Schema**
+- **Why**: RFP structures vary significantly between procurement needs
+- **Benefit**: JSON storage is natural fit for AI-generated structured data
+- **Trade-off**: Less rigid validation, more application-level checks
 
-### Email Polling vs Webhooks
-- **Both Supported**: System implements both strategies
-- **Polling for Dev**: Simpler setup, no public endpoint needed
-- **Webhooks for Prod**: More efficient, real-time processing
-- **Configurable**: Choose based on deployment environment
+**Decision: Hybrid Embedded/Referenced Data**
+- **Embedded**: Vendor send history in RFP document (quick access)
+- **Referenced**: Proposals reference vendors (data integrity)
+- **Why**: Balance between performance and consistency
 
-### Embedded vs Referenced Data
-- **Hybrid Approach**: Balance between performance and consistency
-- **Embedded Vendor Sends**: Quick access to RFP send history
-- **Referenced Proposals**: Maintains data integrity, allows updates
+### 2. AI Processing Strategy
+
+**Decision: Synchronous AI Processing**
+- **Why**: Simpler implementation for single-user system
+- **Benefit**: Immediate feedback, users see results right away
+- **Trade-off**: 5-15 second wait times (acceptable with loading states)
+- **Future**: Can migrate to job queue for multi-user scenarios
+
+**Decision: Confidence Scoring**
+- **Threshold**: 0.7 (70%) for requiring manual review
+- **Why**: Balance between automation and accuracy
+- **Assumption**: Lower confidence indicates ambiguous or incomplete data
+
+**Decision: Graceful AI Failures**
+- **Why**: System should work even if AI service is down
+- **Implementation**: Fallback to manual review when AI fails
+- **Benefit**: Resilient system, no complete failures
+
+### 3. Email Integration
+
+**Decision: Email Polling + Webhook Support**
+- **Polling**: Checks inbox every 2-5 minutes (configurable)
+- **Webhooks**: Instant processing when available
+- **Why**: Polling is simpler for development, webhooks for production
+- **Trade-off**: Polling has slight delay but easier setup
+
+**Decision: Subject Line Correlation**
+- **Format**: `[RFP-{mongodb_id}]` in subject line
+- **Why**: Most reliable way to match responses to RFPs
+- **Fallback**: Vendor email matching if subject parsing fails
+- **Assumption**: Vendors will keep subject line intact when replying
+
+**Decision: Multiple Email Format Support**
+- **Why**: Vendors use different email clients and formats
+- **Implementation**: Multiple parsing strategies with fallbacks
+- **Assumption**: Most proposals will be plain text or simple HTML
+
+### 4. Vendor Proposal Parsing
+
+**Decision: AI-Based Extraction**
+- **Why**: Handles unstructured, varied proposal formats
+- **Alternative Considered**: Template-based parsing (too rigid)
+- **Assumption**: AI can extract key data from most proposal formats
+
+**Decision: Line Item Extraction**
+- **Why**: Detailed pricing breakdown is valuable for comparison
+- **Fallback**: Total price if line items not available
+- **Assumption**: Vendors provide itemized pricing
+
+### 5. Comparison & Recommendation
+
+**Decision: Multi-Factor Scoring**
+- **Factors**: Price (0-10), Delivery (0-10), Terms (0-10), Completeness (0-10)
+- **Why**: Holistic evaluation beyond just price
+- **Assumption**: All factors are equally weighted (can be customized)
+
+**Decision: AI-Generated Reasoning**
+- **Why**: Provides transparency and justification
+- **Benefit**: Helps procurement managers make informed decisions
+- **Assumption**: AI reasoning is valuable even if not always perfect
+
+### 6. Error Handling
+
+**Decision: Graceful Degradation**
+- **Why**: System should remain functional even with partial failures
+- **Examples**: 
+  - Show proposals even if AI comparison fails
+  - Display unparsed proposals for manual review
+  - Continue operation if email service is down
+- **Assumption**: Partial functionality is better than complete failure
+
+### 7. User Interface
+
+**Decision: Modern, Gradient-Based Design**
+- **Why**: Professional appearance builds trust
+- **Implementation**: Tailwind CSS with custom animations
+- **Assumption**: Users expect modern, polished interfaces
+
+**Decision: Real-Time Feedback**
+- **Why**: Users need to know system status
+- **Implementation**: Loading states, toasts, progress indicators
+- **Assumption**: Clear feedback improves user confidence
+
+## 🔐 Security Assumptions
+
+1. **Single-User Environment**: No authentication required
+2. **Trusted Network**: Assumes deployment in secure environment
+3. **Email Security**: Relies on email service provider's security
+4. **API Keys**: Stored in environment variables (not in code)
+5. **Input Validation**: All user inputs validated on backend
+
+**Note**: For production multi-user deployment, add authentication, authorization, and additional security measures.
 
 ## 🚧 Known Limitations
 
